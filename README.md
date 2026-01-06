@@ -1,13 +1,177 @@
 # 你记日记导出（nijiexportflutter）
 
-面向「你记日记」的第三方导出工具（Flutter 重写版）。
+面向「你记日记」的**第三方导出工具**（Flutter 多平台）。目前项目已达到**基本完工可用**：登录后可同步列表，导出日记 TXT / 批量导出图片，并支持对正文内的“隐私段”进行解密替换。
 
-- **目标平台**：Windows Desktop + Android
-- **目标能力**：登录 → 同步 → 拉取日记详情 → 解密隐私段 → 导出 TXT；可选批量下载图片
+> **下载本项目 release（以及其它工具）：https://nijiweb.cn/pc**
+>
+> **网页版日记编辑：https://nijiweb.cn**
 
 ---
 
-## 当前项目进度（以代码为准）
+## 功能一览（以当前源码为准）
+
+- 登录：LoginScreen
+- 同步：ApiService.sync
+- 导出日记 TXT：ExportService.exportAllDiariesToTxt
+  - 日期范围（包含起止日）
+  - 排序：自旧至新
+  - 并发拉取详情、保持最终输出顺序
+  - update_read_mark 调用失败不影响导出
+- 导出图片：ExportService.exportAllImages
+  - 跳过已存在文件
+  - 并发下载
+- 隐私段解密：CryptoService.decryptPrivacyCiphertext
+  - AES-128-CBC + PKCS7
+  - iv = key
+  - hex/base64 兼容
+  - replacePrivacyBlocks：解密失败回退保留原密文块
+
+```mermaid
+flowchart LR
+  A[登录] --> B[sync 获取列表]
+  B --> C1[all_by_ids 拉取日记详情]
+  C1 --> D1[替换/解密隐私段]
+  D1 --> E1[导出 TXT]
+  B --> C2[sync.images 推算图片总数]
+  C2 --> E2[并发下载图片到本地]
+```
+
+---
+
+## 平台支持
+
+本工程为标准 Flutter 多平台工程。
+
+- 已验证可用：Windows / Android
+- 其他平台：理论可构建，但未做完整验证（macOS / Linux / iOS / Web 等）
+
+---
+
+## 快速开始（源码自建）
+
+### 1) 安装依赖
+
+```bash
+flutter pub get
+```
+
+### 2) 运行
+
+Windows：
+
+```bash
+flutter run -d windows
+```
+
+Android：
+
+```bash
+flutter run -d <device>
+```
+
+### 3) 构建
+
+Windows：
+
+```bash
+flutter build windows
+```
+
+Android APK：
+
+```bash
+flutter build apk
+```
+
+---
+
+## 使用说明
+
+### 1) 登录
+
+打开应用进入登录页，输入账号/密码。
+
+- 记住密码：会在本地保存账号与密码，用于下次自动填充
+- 自动登录：下次启动将自动尝试登录（开启此项会自动勾选“记住密码”）
+
+### 2) 导出日记 TXT
+
+主界面点击「导出日记」。
+
+高级选项（主界面右上「高级选项」）：
+
+- 日期范围：不选则默认导出全部；选择后按范围过滤（包含起止日）
+- 排序：勾选“日记自旧至新”则按旧 → 新输出
+
+导出过程中会显示进度（已处理/总数）。导出完成后弹窗会给出文件路径。
+
+### 3) 导出图片
+
+主界面点击「导出图片」。
+
+- 会先从 sync 结果推算图片总数
+- 本地已存在则跳过
+- 图片不存在/被删除则跳过
+
+---
+
+## 导出位置
+
+导出目录策略（以当前实现为准）：
+
+- **Android**：写入 `/storage/emulated/0/你的日记/`
+  - 日记文件：`/storage/emulated/0/你的日记/<用户名>的日记.txt`
+  - 图片目录：`/storage/emulated/0/你的日记/图片/`
+- **非 Android**：写入应用 Documents 下的 `你记导出/`
+  - 日记文件：`Documents/你记导出/<用户名>的日记.txt`
+  - 图片目录：`Documents/你记导出/图片/`
+
+---
+
+## 常见问题（FAQ）
+
+### 1) Android 导出失败：提示需要存储权限
+
+Android 11+ 写入 `/storage/emulated/0/你的日记/` 通常需要“所有文件访问权限”（MANAGE_EXTERNAL_STORAGE）。
+
+处理方式：
+
+1. 在系统设置中为本应用开启存储相关权限
+2. 返回应用重新点击导出
+
+### 2) 隐私段解密失败怎么办？
+
+可能原因包括：密文本身损坏、账号对应 userId 不一致、密文编码异常等。
+
+回退策略：
+
+- 工具会**保留原始密文块**（replacePrivacyBlocks 回退），不会用“解密失败”的占位文本覆盖你的原内容。
+
+---
+
+## 免责声明
+
+- 本项目为**第三方工具**，与「你记日记」官方无任何隶属/合作关系。
+- 使用本工具导出、解密、保存数据存在一定风险（账号安全、数据完整性、设备权限等），请自行评估并承担后果。
+
+---
+
+## 许可证
+
+本项目以 **MIT License** 方式开源。
+
+> 若仓库未附带独立的 LICENSE 文件，则以本 README 的声明为准。
+
+---
+
+## 历史 / 迁移说明（可折叠）
+
+<details>
+<summary>展开查看：早期施工日志 / 计划 / 迁移备忘录（已归档，可能过时）</summary>
+
+> 注：以下内容为项目早期的施工记录/迁移参考；当前能力请以上方“功能一览”与源码实现为准。
+
+### 当前项目进度（以代码为准）
 
 ### ✅ 已完成
 
@@ -18,21 +182,6 @@
 5. **API 基础调用（已打通登录）**：`/api/login/` 登录并保存 token + userid；提供 `sync` 的占位拉取（见 `lib/services/api_service.dart`）。
 6. **常量与主题**：API 地址、隐私标签正则、主题色与输入框/按钮风格（见 `lib/core/constants.dart`、`lib/core/theme.dart`）。
 
-### 🚧 进行中（下一阶段优先）
-
-- **AES 隐私解密 + Unicode/JSON 清洗**：
-  - Aardio 文档约束：**AES-CBC + PKCS7（等价 PKCS5）**、**IV 与 Key 相同**、默认 **UTF-8**。
-  - 已拿到可复现样本：`userid=560020` + 一段完整隐私密文（用于 Dart 侧对齐验证）。
-  - 当前 `lib/services/crypto_service.dart` 仅为占位实现，需要按上述规则对齐。
-
-### ⏳ 未开始（后续里程碑）
-
-- `sync` → `all_by_ids` 循环拉取日记详情、进度展示
-- `update_read_mark` 调用
-- TXT 导出（跨平台路径处理、编码、换行与时间格式）
-- 图片批量下载（`f.nideriji.cn` 图片接口、并发与断点/跳过）
-
----
 
 ## 开发与运行
 
@@ -119,7 +268,7 @@ lib/
 
 （历史蓝图保留）
 
-**另，后续的构建中，可以参考以下aardio原始代码**
+**另，后续的构建中，可以参考以下aardio原始代码（主要是给ai看的）**
 
 ```aardio
 
