@@ -1,0 +1,88 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+# 如果你希望团队共享 VS Code 的调试配置(launch.json)，可以注释掉上面这行，改为只忽略 settings.json
+# .vscode/settings.json
+
+# Flutter/Dart specific
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Android specific
+android/gradle/wrapper/gradle-wrapper.jar
+android/.gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+# ⚠️ 重要：我在你的目录中看到了 key.properties，通常包含密钥密码，必须忽略
+android/key.properties
+android/**/generated/
+android/**/gradle/
+android/**/build/
+android/**/outputs/
+android/**/tmp/
+
+# iOS specific
+ios/*.mode1v3
+ios/*.mode2v3
+ios/*.moved-aside
+ios/*.pbxuser
+ios/*.perspectivev3
+ios/*.xcworkspace
+!ios/default.xcworkspace
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/ephemeral/
+ios/Runner/GeneratedPluginRegistrant.h
+ios/Runner/GeneratedPluginRegistrant.m
+ios/Pods/
+ios/.xcode.env.local
+
+# macOS specific
+macos/Flutter/ephemeral/
+macos/Pods/
+macos/.xcode.env.local
+
+# Windows specific
+windows/flutter/ephemeral/
+# 忽略 CMake 生成的临时文件，但在 Flutter Windows 中通常只需忽略 ephemeral 和 build/
+# 如果你发现 windows 目录下生成了其他临时文件，可以添加
+*.filters
+*.user
+
+# Linux specific
+linux/flutter/ephemeral/
+
+# Web specific
+lib/generated_plugin_registrant.dart
+
+# Native Assets
+native_assets/
+
+# Exception to allow pubspec.lock (推荐保留 lock 文件以确保依赖版本一致)
+!pubspec.lock
