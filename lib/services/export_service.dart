@@ -75,7 +75,7 @@ class ExportService {
     bool reverseOrder = false,
     DateTime? startDate,
     DateTime? endDate,
-    int concurrency = 6,
+    int concurrency = 16,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -130,7 +130,8 @@ class ExportService {
 
     // reverseOrder == true：自旧至新（对齐 aardio：勾选后 totalStr = singleStr ++ totalStr）
     if (reverseOrder) {
-      ids.setAll(0, ids.reversed);
+      // 修正：先通过 .toList() 创建一个副本列表，断开与原 ids 的视图关联
+      ids.setAll(0, ids.reversed.toList());
     }
 
     final total = ids.length;
@@ -149,7 +150,7 @@ class ExportService {
     // 并发拉取详情，但保持最终输出顺序与 ids 一致。
     final chunks = List<String?>.filled(ids.length, null);
     int done = 0;
-    final c = concurrency.clamp(1, 10);
+    final c = concurrency.clamp(1, 16);
 
     await _forEachConcurrent<int>(
       ids,
@@ -230,7 +231,7 @@ class ExportService {
   /// 逻辑对齐 aardio：sync 返回 images 表，取最大 image_id 作为总量，逐个尝试下载；不存在则跳过。
   Future<ExportResult> exportAllImages({
     required void Function(ExportProgress p) onProgress,
-    int concurrency = 6,
+    int concurrency = 16,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -268,7 +269,7 @@ class ExportService {
     int saved = 0;
     int done = 0;
     final ids = List<int>.generate(maxImageId, (i) => i + 1);
-    final c = concurrency.clamp(1, 10);
+    final c = concurrency.clamp(1, 16);
 
     await _forEachConcurrent<int>(
       ids,

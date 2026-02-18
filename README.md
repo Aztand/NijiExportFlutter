@@ -85,6 +85,146 @@ flutter build apk
 
 ---
 
+## 更新 / 发布 Checklist（每次更新项目后要做什么）
+
+> 目的：我自己用 Flutter 太少，经常隔一段时间就忘了“发布时要做的那些小步骤”。
+> 这段 checklist 用来保证每次发版（Android + Windows）都不会漏。
+
+### 0) 拉取/更新代码后（先把环境跑通）
+
+- [ ] 确认 Flutter 环境正常（可选但建议）：
+
+  ```bash
+  flutter doctor -v
+  ```
+
+- [ ] 拉取依赖：
+
+  ```bash
+  flutter pub get
+  ```
+
+- [ ] 如果遇到“明明没改代码但编译各种奇怪报错/旧产物污染”，先清理再拉依赖：
+
+  ```bash
+  flutter clean
+  flutter pub get
+  ```
+
+### 1) 更新版本号（Android + Windows）
+
+- [ ] 修改版本号：编辑 [`pubspec.yaml`](pubspec.yaml:1)
+
+  - 找到并更新这一行：
+
+    ```yaml
+    version: 1.0.1+2
+    ```
+
+  - 约定：`x.y.z+build`
+    - `x.y.z`：展示给用户看的版本（build-name）
+    - `build`：递增构建号（build-number）
+
+- [ ] 版本号影响范围（方便我自己记）：
+
+  - Android：
+    - `versionName = x.y.z`
+    - `versionCode = build`
+    - Android 工程里实际读取的是 Flutter 注入值（见 [`android/app/build.gradle.kts`](android/app/build.gradle.kts:31) 的 `versionCode = flutter.versionCode` / `versionName = flutter.versionName`）。
+
+  - Windows：
+    - 版本信息来自 Flutter 注入的宏，资源文件引用在 [`windows/runner/Runner.rc`](windows/runner/Runner.rc:63)
+    - 一般无需手改 `.rc`，只要你把 [`pubspec.yaml`](pubspec.yaml:19) 的 `version:` 改对即可。
+
+### 2) 编译 Android APK（release）
+
+- [ ] 确认签名配置存在（否则可能只能出 debug 包或 release 构建失败）：
+
+  - `android/key.properties`（不在仓库也正常）
+  - keystore 文件（路径由 `key.properties` 里的 `storeFile=` 指定）
+  - 相关读取逻辑在 [`android/app/build.gradle.kts`](android/app/build.gradle.kts:10)
+
+- [ ] 构建 release APK：
+
+  ```bash
+  flutter build apk --release
+  ```
+
+- [ ] 产物位置（默认）：
+
+  - `build/app/outputs/flutter-apk/app-release.apk`
+
+### 3) 编译 Windows EXE（release）
+
+- [ ] 构建 release：
+
+  ```bash
+  flutter build windows --release
+  ```
+
+- [ ] 产物位置（默认）：
+
+  - `build/windows/x64/runner/Release/`
+  - EXE 名称通常是 `nijiexportflutter.exe`（由 [`windows/CMakeLists.txt`](windows/CMakeLists.txt:7) 的 `BINARY_NAME` 决定）
+
+> 注意：Windows 发布时不能只拿一个 `.exe` 就发出去；同目录下的 `data/`、运行时依赖 DLL 等也要一起带上（最简单做法：把整个 `Release/` 目录当成“程序目录”来打包）。
+
+### 4) 打包 Windows 为「自解压安装包」
+
+- [ ] 准备一个临时目录（例如 `dist/你记日记导出/`），把上一步的 `build/windows/x64/runner/Release/` **整个目录内容**复制进去。
+
+- [ ] 使用你习惯的自解压打包工具打包（示例：7-Zip SFX）：
+
+  1. 用 7-Zip 把“程序目录”压成 `app.7z`
+  2. 准备一个 SFX 配置（示例，仅供参考）：
+
+     ```txt
+     ;!@Install@!UTF-8!
+     Title="你记日记导出"
+     ExtractTitle="正在解压..."
+     ExtractPath="%LOCALAPPDATA%\\你记日记导出"
+     RunProgram="nijiexportflutter.exe"
+     ;!@InstallEnd@!
+     ```
+
+  3. 生成自解压 exe（典型做法：`7z.sfx + config.txt + app.7z` 拼接）
+
+- [ ] 本仓库里有一张背景图可用于自解压界面（是否使用取决于你的 SFX 工具能力）：[`assets/自解压背景.png`](assets/自解压背景.png:1)
+
+### 5) 上传 GitHub + 创建 Release + 上传安装包
+
+- [ ] 提交代码并 push：
+
+  ```bash
+  git status
+  git add -A
+  git commit -m "release: vX.Y.Z"
+  git push
+  ```
+
+- [ ] 创建 tag（可选但建议，方便回滚/对齐版本）：
+
+  ```bash
+  git tag vX.Y.Z
+  git push --tags
+  ```
+
+- [ ] 在 GitHub 创建 Release：
+
+  - 标题：`vX.Y.Z`
+  - 说明：写本次变更摘要
+  - 上传附件：
+    - Android：`app-release.apk`（建议改名成更友好的文件名）
+    - Windows：自解压安装包 exe
+
+### 6) 更新 NijiWeb.cn/pc
+
+- [ ] 上传 Windows 安装包到 `NijiWeb.cn/pc`
+- [ ] 更新版本简介/更新日志（对应本次 `vX.Y.Z`）
+- [ ] 如果 Android 包也在页面提供下载，同步更新 APK 链接与说明
+
+---
+
 ## 使用说明
 
 ### 1) 登录
